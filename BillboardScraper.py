@@ -21,7 +21,8 @@ class BillboardScraper():
 
     def output(self, chart, date):
         for song in chart:
-            row = [song.title, 
+            row = [date,
+                song.title, 
                 song.artist, 
                 song.image, 
                 song.peakPos, 
@@ -29,6 +30,9 @@ class BillboardScraper():
                 song.weeks,
                 song.rank,
                 song.isNew]
+            self.input_row_rds(row)
+    def input_row_rds(self, row):
+        pass
 
 
     @ property
