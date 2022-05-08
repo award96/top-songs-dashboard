@@ -1,8 +1,10 @@
 import billboard
+import datetime
+from rds_connect import input_data
 
 
 class BillboardScraper():
-    def __init__(self, chart_name = "hot-100", date_list = []):
+    def __init__(self, chart_name = "hot-100", date_list = [datetime.datetime.now().strftime("%Y-%m-%d")]):
         """
         ARGS:
             chart_name: a string representing which chart to download
@@ -17,9 +19,9 @@ class BillboardScraper():
     def scrape(self):
         for date in self._date_list:
             chart = billboard.ChartData(self._chart_name, date)
-            self.output(chart, date)
+            self._output_RDS(chart, date)
 
-    def output(self, chart, date):
+    def _output_RDS(self, chart, date):
         for song in chart:
             row = [date,
                 song.title, 
@@ -30,8 +32,8 @@ class BillboardScraper():
                 song.weeks,
                 song.rank,
                 song.isNew]
-            self.input_row_rds(row)
-    def input_row_rds(self, row):
+            self._input_row_rds(row)
+    def _input_row_rds(self, row):
         pass
 
 
