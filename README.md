@@ -4,13 +4,15 @@ Implementing a daily updated dashboard tracking the top songs on streaming and r
 # Requirements
 aws.txt
     a txt file in the form of 
+
     AWS_DB_PW=value
     AWS_DB_HOST=value
     AWS_DB_USER=value
     AWS_DB_DB=value
     AWS_DB_PORT=value
 
-    no apostrophes are necessary
+
+no apostrophes are necessary
 
 an AWS RDS Database
     -   MySQL
@@ -28,6 +30,7 @@ an AWS RDS Database
 # How to use
 
 In terminal:
+
     '''
     python build_dataset.py [start_date] [end_date]
     '''
