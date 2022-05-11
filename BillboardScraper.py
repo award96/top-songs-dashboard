@@ -22,6 +22,11 @@ class BillboardScraper():
     def scrape(self):
 
         for date in self._date_list:
+
+            isDuplicate = self._check_if_duplicate(date)
+            if isDuplicate:
+                print(f"Data likely already in DB for date: {date}\nSkipping this date.")
+                continue
         
             try:
                 chart = billboard.ChartData(self._chart_name, date)
@@ -50,12 +55,9 @@ class BillboardScraper():
                 song.isNew)
             all_rows.append(row)
 
-        is_duplicate = self._check_if_duplicate(date, len(all_rows))
-        if not is_duplicate:
-            self._insert_chart(all_rows)
-            print(f"\nData inserted for date: {date}\n")
-        else:
-            print(f"Data likely already in DB for date: {date}\n")
+        
+        self._insert_chart(all_rows)
+        print(f"\nData inserted for date: {date}\n")
 
     def _insert_chart(self, all_rows):
         query = "INSERT INTO charts (chart_date,title,artist,image,peakPos,lastPos,weeks,chart_rank,isNew) VALUES " + ",".join( 
@@ -69,12 +71,10 @@ class BillboardScraper():
         if self.verbose:
             print(response)
             
-    def _check_if_duplicate(self, date, numRows):
+    def _check_if_duplicate(self, date):
         query = f"SELECT chart_date FROM charts WHERE chart_date = '{date}'"
         res = self._rds.query(query)
         if len(res) > 0:
-            if len(res) == numRows:
-                print("\nExact row match for date already in table")
             return True
         return False
 
