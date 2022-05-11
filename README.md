@@ -15,17 +15,17 @@ aws.txt
 no apostrophes are necessary
 
 an AWS RDS Database
-    -   MySQL
-    -   contains a table called 'charts' with the columns:
-        * chart_date DATE
-        * title VARCHAR(100)
-        * artist VARCHAR(100)
-        * image VARCHAR(100)
-        * peakPos SMALLINT
-        * lastPos SMALLINT
-        * weeks SMALLINT
-        * chart_rank SMALLINT
-        * isNew BOOL
+- MySQL
+- contains a table called 'charts' with the columns:
+  - chart_date DATE
+  - title VARCHAR(100)
+  - artist VARCHAR(100)
+  - image VARCHAR(100)
+  - peakPos SMALLINT
+  - lastPos SMALLINT
+  - weeks SMALLINT
+  - chart_rank SMALLINT
+  - isNew BOOL
 
 # How to use
 
