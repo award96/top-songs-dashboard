@@ -1,12 +1,14 @@
 
 import pymysql
 
+CREDS_FILENAME = "aws.txt"
+
 def get_credentials():
     """
-        Reads aws.txt file and returns credentials dictionary
+        Reads CREDS_FILENAME file and returns credentials dictionary
     """
     aws_creds = {}
-    with open("aws.txt", 'r') as file:
+    with open(CREDS_FILENAME, 'r') as file:
         for line in file:
             l, r = line.split("=")
             r = r.replace("\n", "")
