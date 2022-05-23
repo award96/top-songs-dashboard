@@ -35,9 +35,18 @@ class BillboardScraper():
                 print(f"\nbillboard fetch request failed for {date}")
                 continue
 
-
+            
+            num_songs = len(chart)
             if self.verbose:
-                print(f"\n{len(chart)} songs found for {date}")
+                print(f"\n{num_songs} songs found for {date}")
+
+            if num_songs == 0:
+                # If there are no songs to add to the DB, skip this date
+                
+                # Previously this error was due to billboards.com having a blank
+                # webpage for that date
+                print(f"\nbillboard fetch failed for {date}")
+                continue
             self._output_RDS(chart, date)
             
 
