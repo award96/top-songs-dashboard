@@ -77,7 +77,12 @@ If we can find an API that returns this kind of data when given a song title and
 5) Use the existing "QueryRDS" class to upload data to SQL database
 
 ## Data Analysis
-TBD
+
+Potential Questions to Answer:
+1) How long will a given song stay in the top 100? If so, what is the predicted long-term average for its ranking? And what variables best predict popularity?
+2) Which songs are more popular, those with fast beats or slow ones? How does this vary over time (by decade)?
+3) Are groups with longer or shorter names generally more popular? Determine median length of name and split bands into two groups, long and short names.
+4) (related to 2) What genres are most popular over time, and do the results match what the public perception was for each decade?
 
 ## Automation
 We should be able to utilize AWS to automate the process of updating the dataset and analytics dashboard each day with the new top 100
