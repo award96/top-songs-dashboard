@@ -1,4 +1,4 @@
-from rds_connect import get_credentials, query_aws
+from rds_connect import get_credentials, query_aws, big_insert
 
 class QueryRDS():
     """
@@ -13,6 +13,9 @@ class QueryRDS():
         self.results.append(res)
         return res
 
+    def bigInsert(self, qstring, vals):
+        res = big_insert(qstring, vals, self.creds)
+        return res
 
     def get_prev_queries(self, start_index = 0, stop_index = None):
         if stop_index is None:

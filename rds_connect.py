@@ -56,3 +56,19 @@ def query_aws(statement, credentials = None, vals = None, isInsert = False):
         if isInsert:
             connection.commit()
     return result
+
+def big_insert(statement, vals, credentials = None):
+    """
+        Executes MySQL insert and returns the number of rows inserted
+    """
+    
+    connection = _connect_aws(credentials)
+
+    if not connection.open:
+        raise(ConnectionError)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.executemany(statement, vals)
+            connection.commit()
+    return cursor.rowcount
