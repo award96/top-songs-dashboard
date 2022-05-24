@@ -20,23 +20,43 @@ class SpotifyScraper():
         self._api = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
 
         self.missed_tracks = []
+        self._vals = []
         
     def scrape(self):
+        # Query charts table to find songs to gather data on
         tracks = self.find_tracks_RDS()
+        # Query songs table to prevent duplicate uploads
         tracks = self.remove_duplicates(tracks)
+
         if len(tracks) == 0:
             print("\nNo new songs to add")
             return
-        ids, titles, artists, raw_data = self.get_song_data(tracks)
+        
+        
+        MAX_REQ = 50
+        sub_tracks_index = [MAX_REQ * i for i in range(len(tracks) // MAX_REQ + 1)]
 
-        self._vals = self.parse_data(ids, titles, artists, raw_data)
+        for i in range(len(sub_tracks_index) - 1):
+            print(f"\nIteration {i} of Spotify data gathering and SQL uploading")
+            print(f"Tracks {sub_tracks_index[i]} : {sub_tracks_index[i + 1]} will be uploaded ({len(tracks) - sub_tracks_index[i]} tracks remaining)")
+            sub_tracks = tracks[ sub_tracks_index[i] : sub_tracks_index[i + 1] ]
+            # Spotify API data gathered using spotipy library
+            ids, titles, artists, raw_data = self.get_song_data(sub_tracks)
+            # Reorganize data for SQL upload (list of tuples, each tuple represents a row)
+            these_vals = self.parse_data(ids, titles, artists, raw_data)
+            self._vals = self._vals + these_vals
 
-        qstring = "INSERT INTO songs (id, title, artist, danceability, energy, song_key, loudness, song_mode, speechiness, acousticness, instrumentalness, liveness, valence, tempo, duration, time_signature) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            qstring = "INSERT INTO songs (id, title, artist, danceability, energy, song_key, loudness, song_mode, speechiness, acousticness, instrumentalness, liveness, valence, tempo, duration, time_signature) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            num_rows_inserted = self._rds.bigInsert(qstring, these_vals)
+            print(f"\n{num_rows_inserted} rows inserted...")
 
-        num_rows_inserted = self._rds.bigInsert(qstring, self._vals)
+        did_upload = True
+                
+
+        
 
     
-        print(f"\n\nFinished.\n{num_rows_inserted} rows inserted.")
+        print("\n\nFinished")
 
 
     def parse_data(self, ids, titles, artists, raw_data):
@@ -68,28 +88,43 @@ class SpotifyScraper():
         return vals
 
     def find_tracks_RDS(self):
+        # query charts table to find songs to gather data on
         query = f"SELECT DISTINCT(title), artist FROM charts"
         res = self._rds.query(query)
         return res
 
 
     def remove_duplicates(self, tracks):
+        """
+            ARGS
+                tracks: tuple of tuples. Each sub tuple is the title and artist of a track
+            RETURNS
+                list of tuples. Each sub tuple is the title and artist of a track
+        """
         title_list, artist_list = list(zip(*tracks))
+        # We convert tracks to a list so we can use the remove function
+
         tracks = list(tracks)
         q = f"SELECT title, artist FROM songs WHERE title IN {title_list} AND artist IN {artist_list}"
         res = self._rds.query(q)
 
+        num_removed = 0
         for row in res:
             try:
                 tracks.remove(row)
+                num_removed += 1
             except ValueError as e:
-                print(f"\nValueError: Cannot remove row as it is not there\n{e}")
-        print(f"\nAfter removal of duplicates, {len(tracks)} tracks left")
+                print(f"\nValueError: Cannot remove row as it is not present\n{e}")
+                print(f"Attempted to remove:\n{row}")
+        print(f"\nAfter removal of {num_removed} duplicates, {len(tracks)} tracks left")
         return tracks
     
     def get_song_data(self, tracks):
-        track_ids, track_titles, track_artists = [], [], []
 
+        # We start new ists because the api will not recognize some of the tracks
+        # This way we can keep each index of each list corresponding to the same track
+        track_ids, track_titles, track_artists = [], [], []
+        missed_tracks = []
         # First get the spotify ID
         for t in tracks:
             title, artist = t[0], t[1]
@@ -97,24 +132,39 @@ class SpotifyScraper():
 
             if t_id is None:
                 # skip this track
-                self.missed_tracks.append(t)
+                missed_tracks.append(t)
                 continue
             track_ids.append(t_id)
             track_titles.append(title)
             track_artists.append(artist)
 
+        # Usually due to a difference in representation of ', *, \, and other problematic characters
+        self.missed_tracks += missed_tracks
+        print(f"\n\n{len(missed_tracks)} out of {len(tracks)} tracks could not be found on the Spotify API")
+
         # Then use the spotify ID to get more information
-        try:
-            print(f"\n\nRATIO OF MISSING: {len(self.missed_tracks)/len(tracks)}\n")
-        except ZeroDivisionError:
-            pass
         results = self._api.audio_features(tracks=track_ids)
+
         if len(results) != len(track_ids):
-            raise ValueError(f"results length: {len(results)} , not equal to track id's length: {len(track_ids)}")
+            print(f"results length: {len(results)} , not equal to track id's length: {len(track_ids)}")
+            print("Skipping these tracks")
+            return [], [], [], []
+    
         return track_ids, track_titles, track_artists, results
             
 
     def get_track_id(self, title, artist, recursive_stop = 0, isRetry = False):
+
+        """
+            ARGS
+                title (str):    title of the track
+                artist (str):   artist of the track
+                recursive_stop (int): each time this method calls itself, add 1 to recursive stop.
+                                        Prevents infinite loop
+                isRetry (bool): If this is a retry we will include the artist in the API request
+                                Normally we exclude the artist from our query as the charts data represents multiple artists
+                                in a very useless way.
+        """
 
         if recursive_stop > 2:
             return None
@@ -148,10 +198,9 @@ class SpotifyScraper():
             print(artist)
             # There is an error so return none
             return None
-        # None were matches so return None
-        print("\nNo match for")
-        print(title)
-        print(artist)
+
+        # No matches were found if the code got to here
+        # We retry now using the artist in the query 
         return self.get_track_id(title, artist, recursive_stop + 1, isRetry=True)
             
 
@@ -168,25 +217,5 @@ class SpotifyScraper():
 
 
 
-"""
-[{'danceability': 0.641,
-  'energy': 0.78,
-  'key': 3,
-  'loudness': -5.138,
-  'mode': 1,
-  'speechiness': 0.0852,
-  'acousticness': 0.0206,
-  'instrumentalness': 0,
-  'liveness': 0.143,
-  'valence': 0.693,
-  'tempo': 98.004,
-  'type': 'audio_features',
-  'id': '4PuAqZlL1tkidkuxfDlLbF',
-  'uri': 'spotify:track:4PuAqZlL1tkidkuxfDlLbF',
-  'track_href': 'https://api.spotify.com/v1/tracks/4PuAqZlL1tkidkuxfDlLbF',
-  'analysis_url': 'https://api.spotify.com/v1/audio-analysis/4PuAqZlL1tkidkuxfDlLbF',
-  'duration_ms': 179720,
-  'time_signature': 4}]
-  
-"""
+
 
