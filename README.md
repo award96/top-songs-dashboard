@@ -59,7 +59,7 @@ Using the "Billboard" python library, we can easily collect the top 100 songs fo
 2) In order to prevent duplicate data in the SQL table "billboard": Query the table to see if there are any rows from that date
 3) Upload the data table straight from the API to SQL
 
-This portion of the project is complete
+This portion of the project is complete; only thing to do with current dataset is to clean it with symbols in artist names (apostrophes, ampersands, etc.)
 
 ### Future Work
 
