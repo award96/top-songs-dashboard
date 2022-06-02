@@ -177,7 +177,7 @@ class SpotifyScraper():
         
         try:
             results = self._api.search(q=query, type='track', limit=50)
-        except SpotifyException as e: # exception corresponding to bad http requests
+        except spotipy.SpotifyException as e: # exception corresponding to bad http requests
             print(e)
             print("Waiting 30 seconds...")
             time.sleep(30)
@@ -211,7 +211,6 @@ class SpotifyScraper():
                 l, r = line.split("=")
                 r = r.replace("\n", "")
                 spotify_creds[l] = r
-
         self._spotify_creds = spotify_creds
     
 

@@ -24,6 +24,7 @@ def _connect_aws(credentials = None):
                 It is always necessary to close the connection object, as done in the 
                 query_aws method
     """
+    print(credentials)
     if credentials is None:
         credentials = get_credentials()
 
