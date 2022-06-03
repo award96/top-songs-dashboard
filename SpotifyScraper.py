@@ -20,6 +20,7 @@ class SpotifyScraper():
         self._api = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
 
         self.missed_tracks = []
+        self.missed_tracks_indices = []
         self._vals = []
         
     def scrape(self):
@@ -35,6 +36,7 @@ class SpotifyScraper():
         
         MAX_REQ = 50
         sub_tracks_index = [MAX_REQ * i for i in range(len(tracks) // MAX_REQ + 1)]
+        sub_tracks_index.append(len(tracks))
 
         for i in range(len(sub_tracks_index) - 1):
             print(f"\nIteration {i} of Spotify data gathering and SQL uploading")
@@ -119,12 +121,13 @@ class SpotifyScraper():
         print(f"\nAfter removal of {num_removed} duplicates, {len(tracks)} tracks left")
         return tracks
     
-    def get_song_data(self, tracks):
+    def get_song_data(self, tracks, i=0):
 
         # We start new ists because the api will not recognize some of the tracks
         # This way we can keep each index of each list corresponding to the same track
         track_ids, track_titles, track_artists = [], [], []
         missed_tracks = []
+        missed_tracks_indices = []
         # First get the spotify ID
         for t in tracks:
             title, artist = t[0], t[1]
@@ -133,13 +136,17 @@ class SpotifyScraper():
             if t_id is None:
                 # skip this track
                 missed_tracks.append(t)
+                missed_tracks_indices.append(i)
+                i+=1
                 continue
             track_ids.append(t_id)
             track_titles.append(title)
             track_artists.append(artist)
+            i+=1
 
         # Usually due to a difference in representation of ', *, \, and other problematic characters
         self.missed_tracks += missed_tracks
+        self.missed_tracks_indices += missed_tracks_indices
         print(f"\n\n{len(missed_tracks)} out of {len(tracks)} tracks could not be found on the Spotify API")
 
         # Then use the spotify ID to get more information
@@ -177,7 +184,7 @@ class SpotifyScraper():
         
         try:
             results = self._api.search(q=query, type='track', limit=50)
-        except spotipy.SpotifyException as e: # exception corresponding to bad http requests
+        except SpotifyException as e: # exception corresponding to bad http requests
             print(e)
             print("Waiting 30 seconds...")
             time.sleep(30)
